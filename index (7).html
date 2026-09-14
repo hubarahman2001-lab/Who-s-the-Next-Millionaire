@@ -1,0 +1,835 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HR Values Millionaire</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Source+Serif+4:ital,wght@0,500;0,600;1,500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#eef0f3;
+    --surface:#ffffff;
+    --surface-alt:#f4f5f7;
+    --line:#e0e3e8;
+    --ink:#14171c;
+    --muted:#6b7280;
+    --red:#d71a21;
+    --red-deep:#a31217;
+    --red-tint:#fbe9e8;
+    --blue:#0099d8;
+    --blue-deep:#00729e;
+    --blue-tint:#e6f6fc;
+    --correct:#1c8a53;
+    --correct-tint:#e6f6ee;
+    --wrong:#e2482e;
+    --wrong-tint:#fdece8;
+    --radius:10px;
+  }
+  *{box-sizing:border-box;}
+  html,body{
+    margin:0; padding:0; height:100%; overflow:hidden;
+    background:var(--bg);
+  }
+  body{
+    color:var(--ink);
+    font-family:'Inter', sans-serif;
+  }
+  #rings{
+    position:fixed; inset:0; z-index:0; pointer-events:none;
+    background:
+      radial-gradient(circle at 8% 6%, rgba(215,26,33,0.10) 0%, transparent 30%),
+      radial-gradient(circle at 94% 96%, rgba(0,153,216,0.12) 0%, transparent 34%),
+      var(--bg);
+  }
+  #app{
+    position:relative; z-index:1;
+    height:100vh; width:100%;
+    max-width:1180px; margin:0 auto;
+    display:flex; flex-direction:column;
+    padding:clamp(8px,1.8vh,20px) clamp(10px,2vw,24px);
+  }
+
+  /* ---------- Header ---------- */
+  header{
+    display:flex; align-items:center; justify-content:space-between;
+    flex-wrap:wrap; gap:8px; flex-shrink:0;
+    margin-bottom:clamp(6px,1.2vh,14px);
+  }
+  .brand{ display:flex; align-items:center; gap:12px; }
+  .brand .mark{
+    flex-shrink:0; width:40px; height:40px; border-radius:11px;
+    background:var(--surface); border:1px solid var(--line);
+    box-shadow:0 1px 2px rgba(20,23,28,0.06);
+    display:flex; align-items:center; justify-content:center;
+  }
+  .brand-text{ line-height:1.15; }
+  .brand h1{
+    font-size:clamp(1.05rem,2.3vh,1.5rem); margin:0; font-weight:700;
+    letter-spacing:0.01em; color:var(--ink);
+  }
+  .brand h1 span{ color:var(--red); }
+  .brand .eyebrow{
+    display:block; font-size:clamp(0.6rem,1.1vh,0.68rem); color:var(--muted);
+    letter-spacing:0.12em; text-transform:uppercase; margin-top:2px; font-weight:600;
+  }
+  .header-right{ display:flex; align-items:center; gap:10px; }
+  .winnings-pill{
+    background:var(--blue-tint);
+    border:1px solid var(--blue);
+    border-radius:20px; padding:6px 16px;
+    font-size:clamp(0.7rem,1.4vh,0.85rem); color:var(--blue-deep);
+    display:flex; align-items:center; gap:8px;
+  }
+  .winnings-pill strong{ color:var(--red); font-size:1.05em; }
+  #restart-top{
+    background:var(--surface); border:1px solid var(--line); color:var(--muted);
+    padding:6px 12px; border-radius:20px; font-family:inherit; font-size:0.75rem;
+    cursor:pointer; text-transform:uppercase; letter-spacing:0.03em;
+  }
+  #restart-top:hover{ border-color:var(--red); color:var(--red); }
+
+  /* ---------- Stage layout ---------- */
+  .stage{
+    display:grid; grid-template-columns: 1fr 200px; gap:clamp(10px,1.6vw,20px);
+    flex:1; min-height:0;
+  }
+  @media (max-width: 720px){
+    .stage{ grid-template-columns: 1fr; grid-template-rows: 1fr auto; }
+  }
+
+  /* ---------- Question panel ---------- */
+  .panel{
+    background:var(--surface);
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    box-shadow:0 1px 3px rgba(20,23,28,0.05);
+    padding:clamp(12px,2vh,22px);
+    display:flex; flex-direction:column; min-height:0;
+  }
+  .lifelines{
+    display:flex; gap:8px; margin-bottom:clamp(8px,1.4vh,16px); flex-wrap:wrap; flex-shrink:0;
+  }
+  .lifeline-btn{
+    display:flex; align-items:center; gap:6px;
+    background:var(--surface); border:1px solid var(--line);
+    color:var(--ink); padding:6px 12px; border-radius:20px;
+    font-family:inherit; font-size:clamp(0.65rem,1.3vh,0.78rem); cursor:pointer;
+    text-transform:uppercase; letter-spacing:0.02em;
+    transition:transform .12s, border-color .15s;
+  }
+  .lifeline-btn:hover:not(:disabled){ border-color:var(--red); transform:translateY(-1px); }
+  .lifeline-btn:disabled{ opacity:0.35; cursor:not-allowed; }
+  .lifeline-btn .dot{ width:7px; height:7px; border-radius:50%; background:var(--blue); }
+
+  .top-row{
+    display:flex; align-items:center; justify-content:space-between;
+    flex-wrap:wrap; gap:8px; margin-bottom:6px; flex-shrink:0;
+  }
+  .prize-current{ color:var(--muted); font-size:clamp(0.72rem,1.4vh,0.88rem); margin:0; }
+  .prize-current strong{ color:var(--red); }
+
+  .timer-wrap{ display:flex; align-items:center; gap:8px; flex-shrink:0; }
+  .timer-num{
+    font-weight:700; font-size:clamp(0.85rem,1.8vh,1.05rem); color:var(--blue-deep);
+    min-width:2ch; text-align:right; font-variant-numeric:tabular-nums;
+  }
+  .timer-track{
+    width:clamp(70px,12vw,120px); height:7px; border-radius:4px;
+    background:var(--surface-alt); overflow:hidden; border:1px solid var(--line);
+  }
+  .timer-fill{
+    height:100%; width:100%; background:var(--blue);
+    transition:width 1s linear, background-color .3s;
+  }
+  .timer-fill.low{ background:var(--wrong); }
+
+  #question-text{
+    font-family:'Source Serif 4', serif; font-weight:600; color:var(--ink);
+    font-size:clamp(1.3rem,3.6vh,2rem); line-height:1.32;
+    margin:clamp(6px,1.4vh,16px) 0 clamp(14px,2.4vh,26px);
+    text-align:center; flex-shrink:0;
+  }
+
+  .options-grid{
+    display:grid; grid-template-columns:1fr 1fr; gap:clamp(10px,1.8vh,18px);
+    flex:1; min-height:0; align-content:center;
+  }
+  @media (max-width:520px){ .options-grid{ grid-template-columns:1fr; } }
+  .option{
+    display:flex; align-items:center; gap:12px; text-align:left;
+    background:var(--surface);
+    border:1.5px solid var(--line);
+    color:var(--ink); padding:clamp(14px,2.4vh,22px) clamp(18px,2.6vw,30px);
+    font-family:'Source Serif 4', serif; font-size:clamp(1rem,2.4vh,1.28rem);
+    cursor:pointer; transition:border-color .15s, background .15s, transform .1s;
+    border-radius:8px;
+  }
+  .option:hover:not(:disabled){ border-color:var(--blue); background:var(--blue-tint); transform:translateY(-1px); }
+  .option .letter{
+    font-family:'Inter', sans-serif; font-weight:700;
+    color:var(--blue-deep); flex-shrink:0; font-size:1.05em;
+  }
+  .option.selected{ border-color:var(--red); background:var(--red-tint); }
+  .option.selected .letter{ color:var(--red); }
+  .option.correct{ border-color:var(--correct); background:var(--correct-tint); }
+  .option.correct .letter{ color:var(--correct); }
+  .option.wrong{ border-color:var(--wrong); background:var(--wrong-tint); }
+  .option.wrong .letter{ color:var(--wrong); }
+  .option.eliminated{ opacity:0.25; pointer-events:none; }
+  .option:disabled{ cursor:default; }
+
+  .controls{
+    display:flex; justify-content:space-between; align-items:center;
+    margin-top:clamp(8px,1.4vh,16px); flex-wrap:wrap; gap:8px; flex-shrink:0;
+  }
+  #walk-away{
+    background:var(--surface); border:1px solid var(--line); color:var(--muted);
+    padding:8px 14px; border-radius:20px; font-family:inherit; font-size:clamp(0.68rem,1.3vh,0.8rem);
+    cursor:pointer; text-transform:uppercase; letter-spacing:0.02em;
+  }
+  #walk-away:hover:not(:disabled){ border-color:var(--wrong); color:var(--wrong); }
+  #walk-away:disabled{ opacity:0.3; cursor:not-allowed; }
+
+  #confirm-btn{
+    background:linear-gradient(135deg, var(--red), var(--red-deep)); border:none; color:#fff;
+    padding:9px 20px; border-radius:20px; font-family:inherit; font-weight:600;
+    font-size:clamp(0.7rem,1.3vh,0.82rem); cursor:pointer; opacity:0; pointer-events:none;
+    text-transform:uppercase; letter-spacing:0.02em;
+    transition:opacity .15s;
+  }
+  #confirm-btn.visible{ opacity:1; pointer-events:auto; }
+
+  /* ---------- audience / friend popup modal ---------- */
+  #helper-overlay{
+    position:fixed; inset:0; background:rgba(20,23,28,0.55);
+    display:none; align-items:center; justify-content:center; z-index:15;
+    padding:20px;
+  }
+  #helper-overlay.visible{ display:flex; }
+  .helper-modal{
+    background:var(--surface);
+    border:1px solid var(--blue); border-radius:14px;
+    box-shadow:0 12px 32px rgba(20,23,28,0.18);
+    padding:24px 26px; max-width:460px; width:100%;
+  }
+  .helper-modal h4{
+    margin:0 0 16px; font-size:0.85rem; color:var(--muted); font-weight:500;
+    text-transform:uppercase; letter-spacing:0.04em; text-align:center;
+  }
+  .helper-modal-close{
+    display:block; margin:18px auto 0;
+    background:linear-gradient(135deg, var(--red), var(--red-deep)); border:none; color:#fff;
+    padding:9px 24px; border-radius:20px; font-family:inherit; font-weight:600;
+    font-size:0.8rem; cursor:pointer; text-transform:uppercase; letter-spacing:0.02em;
+  }
+  .bar-row{ display:flex; align-items:center; gap:10px; margin-bottom:10px; }
+  .bar-row .bar-label{
+    width:26px; height:26px; border-radius:50%; flex-shrink:0;
+    background:var(--surface-alt); border:1px solid var(--line);
+    color:var(--muted); font-size:0.85em; font-weight:600;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .bar-row .bar-track{
+    flex:1; height:20px; background:var(--surface-alt); border-radius:10px;
+    overflow:hidden; border:1px solid var(--line);
+  }
+  .bar-row .bar-fill{
+    height:100%; width:0%; border-radius:10px;
+    background:linear-gradient(90deg, var(--blue-deep), var(--blue));
+  }
+  .bar-row .bar-pct{
+    width:42px; text-align:right; color:var(--muted); font-size:0.95em;
+    font-variant-numeric:tabular-nums; font-weight:500;
+  }
+  .bar-row.leading .bar-label{ background:var(--red); border-color:var(--red); color:#fff; }
+  .bar-row.leading .bar-track{ border-color:var(--red-deep); }
+  .bar-row.leading .bar-fill{
+    background:linear-gradient(90deg, var(--red-deep), var(--red));
+  }
+  .bar-row.leading .bar-pct{ color:var(--red); font-weight:700; }
+  .friend-quote{ font-family:'Source Serif 4', serif; font-style:italic; color:var(--ink); line-height:1.5; margin:0; font-size:1.05rem; text-align:center; }
+
+  /* ---------- ladder ---------- */
+  .ladder{
+    background:var(--surface);
+    border:1px solid var(--line); border-radius:var(--radius);
+    padding:clamp(8px,1.4vh,14px) clamp(6px,1vw,10px);
+    display:flex; flex-direction:column-reverse; justify-content:center;
+    gap:clamp(2px,0.6vh,6px); min-height:0; overflow:hidden;
+  }
+  .rung{
+    display:flex; align-items:center; justify-content:space-between;
+    padding:clamp(4px,0.9vh,8px) 10px; border-radius:6px;
+    font-size:clamp(0.68rem,1.3vh,0.85rem); color:var(--muted);
+    font-weight:500; letter-spacing:0.01em;
+  }
+  .rung .num{ opacity:0.55; margin-right:6px; font-size:0.8em; }
+  .rung.safe{ color:var(--blue-deep); font-weight:600; }
+  .rung.current{
+    background:var(--red-tint);
+    color:var(--red-deep); font-weight:700;
+    border:1px solid var(--red);
+  }
+  .rung.passed{ color:var(--correct); }
+
+  /* ---------- overlay end-screens ---------- */
+  #overlay{
+    position:fixed; inset:0; background:rgba(20,23,28,0.6);
+    display:none; align-items:center; justify-content:center; z-index:10;
+    padding:20px;
+  }
+  #overlay.visible{ display:flex; }
+  .end-card{
+    background:var(--surface);
+    border:1px solid var(--line); border-top:4px solid var(--red); border-radius:14px;
+    box-shadow:0 16px 40px rgba(20,23,28,0.18);
+    padding:clamp(24px,4vh,40px) clamp(20px,4vw,36px); max-width:440px; text-align:center;
+  }
+  .end-card .icon{ font-size:2.2rem; margin-bottom:10px; }
+  .end-card h2{ margin:0 0 8px; font-size:1.5rem; color:var(--ink); letter-spacing:0.01em; font-weight:700; }
+  .end-card p{ color:var(--muted); margin:0 0 22px; line-height:1.5; font-size:0.92rem; font-family:'Source Serif 4', serif; }
+  .end-card .amount{ color:var(--red); font-weight:700; font-family:'Inter', sans-serif; }
+  .end-card button{
+    background:linear-gradient(135deg, var(--red), var(--red-deep)); border:none; color:#fff; font-family:inherit;
+    font-weight:600; padding:10px 26px; border-radius:20px; cursor:pointer; font-size:0.88rem;
+    text-transform:uppercase; letter-spacing:0.02em;
+  }
+
+  /* ---------- start screen ---------- */
+  #start-overlay{
+    position:fixed; inset:0; z-index:20;
+    background:var(--bg);
+    display:flex; align-items:center; justify-content:center;
+    padding:20px;
+  }
+  #start-overlay.hidden{ display:none; }
+  .start-card{
+    background:var(--surface); border:1px solid var(--line); border-top:5px solid var(--red);
+    border-radius:16px; box-shadow:0 16px 40px rgba(20,23,28,0.14);
+    max-width:480px; width:100%; padding:clamp(28px,5vh,44px) clamp(24px,5vw,40px);
+    text-align:center;
+  }
+  .start-card .mark{
+    width:56px; height:56px; border-radius:14px; margin:0 auto 18px;
+    background:var(--surface); border:1px solid var(--line);
+    display:flex; align-items:center; justify-content:center;
+    box-shadow:0 1px 3px rgba(20,23,28,0.06);
+  }
+  .start-card .eyebrow{
+    display:block; font-size:0.7rem; color:var(--muted); font-weight:600;
+    letter-spacing:0.12em; text-transform:uppercase; margin-bottom:10px;
+  }
+  .start-card h2{
+    margin:0 0 12px; font-size:clamp(1.35rem,3.4vh,1.9rem); font-weight:700; color:var(--ink);
+  }
+  .start-card h2 span{ color:var(--red); }
+  .start-card p{
+    margin:0 0 22px; color:var(--muted); font-size:0.94rem; line-height:1.55;
+    font-family:'Source Serif 4', serif;
+  }
+  .start-facts{
+    display:flex; flex-wrap:wrap; gap:8px; justify-content:center;
+    margin:0 0 26px; padding:0; list-style:none;
+  }
+  .start-facts li{
+    background:var(--surface-alt); border:1px solid var(--line); border-radius:20px;
+    padding:6px 14px; font-size:0.74rem; color:var(--ink); font-weight:500;
+  }
+  .start-facts li b{ color:var(--red); }
+  #start-btn{
+    background:linear-gradient(135deg, var(--red), var(--red-deep)); border:none; color:#fff;
+    font-family:inherit; font-weight:700; padding:13px 36px; border-radius:24px;
+    cursor:pointer; font-size:0.95rem; text-transform:uppercase; letter-spacing:0.03em;
+    transition:transform .12s;
+  }
+  #start-btn:hover{ transform:translateY(-1px); }
+</style>
+</head>
+<body>
+
+<div id="rings"></div>
+
+<div id="start-overlay">
+  <div class="start-card">
+    <div class="mark">
+      <svg width="28" height="26" viewBox="0 0 40 36" fill="none">
+        <polygon points="35,18 27.5,5 20,18" fill="var(--red)"/>
+        <polygon points="27.5,5 12.5,5 20,18" fill="var(--red)"/>
+        <polygon points="12.5,5 5,18 20,18" fill="var(--blue)"/>
+        <polygon points="5,18 12.5,31 20,18" fill="var(--blue)"/>
+        <polygon points="12.5,31 27.5,31 20,18" fill="var(--blue)"/>
+        <polygon points="27.5,31 35,18 20,18" fill="var(--red)"/>
+        <polygon points="35,18 27.5,5 20,18 12.5,5 5,18 12.5,31 27.5,31" fill="none" stroke="#ffffff" stroke-width="1.4" stroke-linejoin="round"/>
+      </svg>
+    </div>
+    <span class="eyebrow">Emirates Group Learning</span>
+    <h2>HR Values <span>Millionaire</span></h2>
+    <p>Answer 5 questions on our HR values, climb the prize ladder, and use your lifelines wisely. Get one wrong and you'll walk away with whatever you've locked in at the last safe haven.</p>
+    <ul class="start-facts">
+      <li><b>5</b> questions</li>
+      <li><b>30s</b> per question</li>
+      <li><b>3</b> lifelines</li>
+      <li>safe haven at <b>Q3</b></li>
+    </ul>
+    <button id="start-btn">Start the game</button>
+  </div>
+</div>
+
+<div id="app">
+  <header>
+    <div class="brand">
+      <div class="mark">
+        <svg width="24" height="22" viewBox="0 0 40 36" fill="none">
+          <polygon points="35,18 27.5,5 20,18" fill="var(--red)"/>
+          <polygon points="27.5,5 12.5,5 20,18" fill="var(--red)"/>
+          <polygon points="12.5,5 5,18 20,18" fill="var(--blue)"/>
+          <polygon points="5,18 12.5,31 20,18" fill="var(--blue)"/>
+          <polygon points="12.5,31 27.5,31 20,18" fill="var(--blue)"/>
+          <polygon points="27.5,31 35,18 20,18" fill="var(--red)"/>
+          <polygon points="35,18 27.5,5 20,18 12.5,5 5,18 12.5,31 27.5,31" fill="none" stroke="#ffffff" stroke-width="1.4" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <div class="brand-text">
+        <h1>HR Values <span>Millionaire</span></h1>
+        <span class="eyebrow">Emirates Group Learning</span>
+      </div>
+    </div>
+    <div class="header-right">
+      <div class="winnings-pill">guaranteed: <strong id="guaranteed-amt">$0</strong></div>
+      <button id="restart-top">restart</button>
+    </div>
+  </header>
+
+  <div class="stage">
+    <section class="panel">
+      <div class="lifelines">
+        <button class="lifeline-btn" id="ll-5050"><span class="dot"></span>50:50</button>
+        <button class="lifeline-btn" id="ll-audience"><span class="dot"></span>ask the audience</button>
+        <button class="lifeline-btn" id="ll-friend"><span class="dot"></span>phone a friend</button>
+      </div>
+
+      <div class="top-row">
+        <p class="prize-current">question <strong id="q-num">1</strong> of 5 &nbsp;&middot;&nbsp; playing for <strong id="q-prize">$100</strong></p>
+        <div class="timer-wrap">
+          <div class="timer-track"><div class="timer-fill" id="timer-fill"></div></div>
+          <span class="timer-num" id="timer-num">30</span>
+        </div>
+      </div>
+
+      <h2 id="question-text">Loading question…</h2>
+
+      <div class="options-grid" id="options-grid"></div>
+
+      <div class="controls">
+        <button id="walk-away">walk away with winnings</button>
+        <button id="confirm-btn">lock in final answer</button>
+      </div>
+    </section>
+
+    <aside class="ladder" id="ladder"></aside>
+  </div>
+</div>
+
+<div id="overlay">
+  <div class="end-card">
+    <div class="icon" id="end-icon">🏆</div>
+    <h2 id="end-title">You did it!</h2>
+    <p id="end-desc">You've walked away with <span class="amount" id="end-amount">$0</span>.</p>
+    <button id="play-again">play again</button>
+  </div>
+</div>
+
+<div id="helper-overlay">
+  <div class="helper-modal">
+    <h4 id="helper-title">the audience says</h4>
+    <div id="helper-body"></div>
+    <button class="helper-modal-close" id="helper-close">back to the question</button>
+  </div>
+</div>
+
+<script>
+(function(){
+
+  /* =====================================================
+     QUESTION BANK — edit this array to customize the quiz.
+     Each question needs: text, options (4), correct (index 0-3).
+     Keep them in increasing order of difficulty to match
+     the prize ladder below.
+  ===================================================== */
+  const QUESTIONS = [
+    {
+      text:"Which of the following is considered a disrespectful behavior that should be avoided during a team meeting?",
+      options:[
+        "Actively inviting quieter team members to speak",
+        "Rolling your eyes, pointing fingers, and checking your phone while others talk",
+        "Letting a colleague finish their point before responding",
+        "Staying calm during a disagreement"
+      ],
+      correct:1
+    },
+    {
+      text:"According to the value of Respect, what should you do if you strongly disagree with a colleague's opinion during a discussion?",
+      options:[
+        "Interrupt them immediately to correct their line of thinking",
+        "Formulate your counterargument while they are still speaking",
+        "Let them finish making their point before you respond",
+        "Check your laptop until they are done speaking"
+      ],
+      correct:2
+    },
+    {
+      text:"If you are on a recruitment panel and realize you know one of the candidates personally, what does the value of Integrity require you to do?",
+      options:[
+        "Keep it a secret to save the team hours of interviews",
+        "Declare the connection and step back so the process stays fair",
+        "Quietly put them on the shortlist because they are a \u201cgreat guy\u201d",
+        "Ask the candidate to pretend they don't know you"
+      ],
+      correct:1
+    },
+    {
+      text:"What does it mean to be a \u201ctrusted partner\u201d in HR when you witness an unethical shortcut or bias creeping into a process?",
+      options:[
+        "Pretending you didn't see it because addressing it would be awkward",
+        "Challenging the practice and speaking up, even when it is uncomfortable",
+        "Adjusting your ethical principles to be \u201cflexible\u201d for the situation",
+        "Prioritizing speed and efficiency over fairness"
+      ],
+      correct:1
+    },
+    {
+      text:"Which of the following best defines the core principle of \u201cIntegrity\u201d as outlined in our organizational values?",
+      options:[
+        "Doing whatever it takes to speed up hiring and promotions",
+        "Holding yourself to strong ethical principles, even when it is uncomfortable",
+        "Being flexible with rules to help friends and family get jobs",
+        "Staying silent during unethical situations to maintain team harmony"
+      ],
+      correct:1
+    }
+  ];
+
+  const PRIZES = [100, 1000, 10000, 100000, 1000000];
+  const SAFE_HAVENS = [3]; // 1-indexed question numbers that lock in a guaranteed amount
+  const TIMER_SECONDS = 30;
+
+  function fmt(n){ return '$' + n.toLocaleString('en-US'); }
+
+  let state = {};
+  let timerInterval = null;
+
+  function resetState(){
+    state = {
+      current: 0,
+      lifelines:{ fifty:false, audience:false, friend:false },
+      selected: null,
+      locked: false,
+      eliminated: [],
+      timeLeft: TIMER_SECONDS
+    };
+  }
+
+  const els = {
+    qNum: document.getElementById('q-num'),
+    qPrize: document.getElementById('q-prize'),
+    qText: document.getElementById('question-text'),
+    grid: document.getElementById('options-grid'),
+    ladder: document.getElementById('ladder'),
+    confirmBtn: document.getElementById('confirm-btn'),
+    walkAway: document.getElementById('walk-away'),
+    helperOverlay: document.getElementById('helper-overlay'),
+    helperTitle: document.getElementById('helper-title'),
+    helperBody: document.getElementById('helper-body'),
+    helperClose: document.getElementById('helper-close'),
+    overlay: document.getElementById('overlay'),
+    endIcon: document.getElementById('end-icon'),
+    endTitle: document.getElementById('end-title'),
+    endDesc: document.getElementById('end-desc'),
+    endAmount: document.getElementById('end-amount'),
+    guaranteedAmt: document.getElementById('guaranteed-amt'),
+    ll5050: document.getElementById('ll-5050'),
+    llAudience: document.getElementById('ll-audience'),
+    llFriend: document.getElementById('ll-friend'),
+    timerFill: document.getElementById('timer-fill'),
+    timerNum: document.getElementById('timer-num'),
+  };
+
+  function buildLadder(){
+    els.ladder.innerHTML = '';
+    PRIZES.forEach((p, i)=>{
+      const n = i+1;
+      const div = document.createElement('div');
+      div.className = 'rung';
+      if (SAFE_HAVENS.includes(n)) div.classList.add('safe');
+      div.dataset.n = n;
+      div.innerHTML = `<span><span class="num">${n}</span>${fmt(p)}</span>`;
+      els.ladder.appendChild(div);
+    });
+  }
+
+  function updateLadder(){
+    document.querySelectorAll('.rung').forEach(r=>{
+      const n = parseInt(r.dataset.n,10);
+      r.classList.remove('current','passed');
+      if (n === state.current+1) r.classList.add('current');
+      else if (n <= state.current) r.classList.add('passed');
+    });
+  }
+
+  function updateGuaranteed(){
+    els.guaranteedAmt.textContent = fmt(guaranteedAmount(state.current));
+  }
+
+  function renderQuestion(){
+    state.selected = null;
+    state.locked = false;
+    state.eliminated = [];
+    els.confirmBtn.classList.remove('visible');
+    els.helperOverlay.classList.remove('visible');
+
+    const q = QUESTIONS[state.current];
+    els.qNum.textContent = state.current+1;
+    els.qPrize.textContent = fmt(PRIZES[state.current]);
+    els.qText.textContent = q.text;
+
+    els.grid.innerHTML = '';
+    q.options.forEach((opt, idx)=>{
+      const btn = document.createElement('button');
+      btn.className = 'option';
+      btn.innerHTML = `<span class="letter">${String.fromCharCode(65+idx)}:</span><span>${opt}</span>`;
+      btn.addEventListener('click', ()=> selectOption(idx));
+      els.grid.appendChild(btn);
+    });
+
+    els.walkAway.disabled = state.current === 0;
+    updateLadder();
+    updateGuaranteed();
+    startTimer();
+  }
+
+  function startTimer(){
+    clearInterval(timerInterval);
+    state.timeLeft = TIMER_SECONDS;
+    updateTimerDisplay();
+    resumeTimer();
+  }
+
+  function resumeTimer(){
+    clearInterval(timerInterval);
+    timerInterval = setInterval(()=>{
+      state.timeLeft--;
+      updateTimerDisplay();
+      if (state.timeLeft <= 0){
+        clearInterval(timerInterval);
+        handleTimeUp();
+      }
+    }, 1000);
+  }
+
+  function updateTimerDisplay(){
+    const pct = Math.max(0, (state.timeLeft / TIMER_SECONDS) * 100);
+    els.timerFill.style.width = pct + '%';
+    els.timerFill.classList.toggle('low', state.timeLeft <= 10);
+    els.timerNum.textContent = state.timeLeft;
+  }
+
+  function handleTimeUp(){
+    if (state.locked) return;
+    state.locked = true;
+    els.confirmBtn.classList.remove('visible');
+    const q = QUESTIONS[state.current];
+    const opts = document.querySelectorAll('.option');
+    opts.forEach(o=> o.disabled = true);
+    opts[q.correct].classList.add('correct');
+    setTimeout(()=>{
+      const guaranteed = guaranteedAmount(state.current);
+      endGame('timeout', guaranteed);
+    }, 1200);
+  }
+
+  function selectOption(idx){
+    if (state.locked) return;
+    if (state.eliminated.includes(idx)) return;
+    state.selected = idx;
+    document.querySelectorAll('.option').forEach((el,i)=>{
+      el.classList.toggle('selected', i===idx);
+    });
+    els.confirmBtn.classList.add('visible');
+  }
+
+  els.confirmBtn.addEventListener('click', ()=>{
+    if (state.selected === null || state.locked) return;
+    lockAnswer();
+  });
+
+  function lockAnswer(){
+    state.locked = true;
+    clearInterval(timerInterval);
+    els.confirmBtn.classList.remove('visible');
+    const q = QUESTIONS[state.current];
+    const opts = document.querySelectorAll('.option');
+    opts.forEach(o=> o.disabled = true);
+
+    setTimeout(()=>{
+      opts[q.correct].classList.add('correct');
+      if (state.selected !== q.correct){
+        opts[state.selected].classList.add('wrong');
+      }
+      setTimeout(()=>{
+        if (state.selected === q.correct){
+          if (state.current === QUESTIONS.length - 1){
+            endGame('win', PRIZES[PRIZES.length-1]);
+          } else {
+            state.current++;
+            renderQuestion();
+          }
+        } else {
+          const guaranteed = guaranteedAmount(state.current);
+          endGame('lose', guaranteed);
+        }
+      }, 1300);
+    }, 700);
+  }
+
+  function guaranteedAmount(currentIdx){
+    // currentIdx is 0-based index of the current/just-failed question
+    let amount = 0;
+    for (const n of SAFE_HAVENS){
+      if (currentIdx >= n) amount = PRIZES[n-1];
+    }
+    return amount;
+  }
+
+  els.walkAway.addEventListener('click', ()=>{
+    if (state.locked || state.current === 0) return;
+    clearInterval(timerInterval);
+    const amount = PRIZES[state.current-1];
+    endGame('walk', amount);
+  });
+
+  function endGame(type, amount){
+    clearInterval(timerInterval);
+    els.overlay.classList.add('visible');
+    if (type === 'win'){
+      els.endIcon.textContent = '🏆';
+      els.endTitle.textContent = "You're an HR Values Millionaire!";
+      els.endDesc.innerHTML = `You answered every question correctly and won <span class="amount">${fmt(amount)}</span>.`;
+    } else if (type === 'walk'){
+      els.endIcon.textContent = '🤝';
+      els.endTitle.textContent = 'You walked away';
+      els.endDesc.innerHTML = `You banked <span class="amount">${fmt(amount)}</span> before risking it all.`;
+    } else if (type === 'timeout'){
+      els.endIcon.textContent = '⏱️';
+      els.endTitle.textContent = "Time's up";
+      els.endDesc.innerHTML = amount > 0
+        ? `You ran out of time \u2014 your safe haven means you still leave with <span class="amount">${fmt(amount)}</span>.`
+        : `You ran out of time and leave with <span class="amount">${fmt(0)}</span>. Give it another go.`;
+    } else {
+      els.endIcon.textContent = '💫';
+      els.endTitle.textContent = 'Game over';
+      els.endDesc.innerHTML = amount > 0
+        ? `That one got you \u2014 but your safe haven means you still leave with <span class="amount">${fmt(amount)}</span>.`
+        : `That one got you \u2014 you leave with <span class="amount">${fmt(0)}</span>. Give it another go.`;
+    }
+  }
+
+  document.getElementById('play-again').addEventListener('click', startGame);
+  document.getElementById('restart-top').addEventListener('click', ()=>{
+    if (confirm('Restart the game from question 1?')) startGame();
+  });
+
+  /* ---------- lifelines ---------- */
+  els.ll5050.addEventListener('click', ()=>{
+    if (state.lifelines.fifty || state.locked) return;
+    state.lifelines.fifty = true;
+    els.ll5050.disabled = true;
+    const q = QUESTIONS[state.current];
+    const wrongIdxs = [0,1,2,3].filter(i=> i!==q.correct);
+    wrongIdxs.sort(()=>Math.random()-0.5);
+    const toRemove = wrongIdxs.slice(0,2);
+    const opts = document.querySelectorAll('.option');
+    toRemove.forEach(i=>{
+      opts[i].classList.add('eliminated');
+      opts[i].disabled = true;
+      state.eliminated.push(i);
+    });
+  });
+
+  function openHelper(title){
+    clearInterval(timerInterval);
+    els.helperTitle.textContent = title;
+    els.helperOverlay.classList.add('visible');
+  }
+  els.helperClose.addEventListener('click', ()=>{
+    els.helperOverlay.classList.remove('visible');
+    if (!state.locked) resumeTimer();
+  });
+
+  els.llAudience.addEventListener('click', ()=>{
+    if (state.lifelines.audience || state.locked) return;
+    state.lifelines.audience = true;
+    els.llAudience.disabled = true;
+    const q = QUESTIONS[state.current];
+    const remaining = [0,1,2,3].filter(i=> !state.eliminated.includes(i));
+    const difficulty = state.current / QUESTIONS.length;
+    const correctShare = Math.round(70 - difficulty*35 + Math.random()*10);
+    let pcts = {};
+    remaining.forEach(i=> pcts[i] = i===q.correct ? correctShare : 0);
+    let remainder = 100 - correctShare;
+    const others = remaining.filter(i=> i!==q.correct);
+    others.forEach((i, idx)=>{
+      const share = idx === others.length-1 ? remainder : Math.round(Math.random()*remainder/ (others.length-idx));
+      pcts[i] = share;
+      remainder -= share;
+    });
+    const leaderIdx = [0,1,2,3].reduce((best,i)=> (pcts[i]||0) > (pcts[best]||0) ? i : best, 0);
+    els.helperBody.innerHTML = '';
+    [0,1,2,3].forEach(i=>{
+      const pct = pcts[i] || 0;
+      const row = document.createElement('div');
+      row.className = 'bar-row' + (i === leaderIdx ? ' leading' : '');
+      row.innerHTML = `<span class="bar-label">${String.fromCharCode(65+i)}</span>
+        <span class="bar-track"><span class="bar-fill" style="width:${pct}%"></span></span>
+        <span class="bar-pct">${pct}%</span>`;
+      els.helperBody.appendChild(row);
+    });
+    openHelper('the audience says');
+  });
+
+  els.llFriend.addEventListener('click', ()=>{
+    if (state.lifelines.friend || state.locked) return;
+    state.lifelines.friend = true;
+    els.llFriend.disabled = true;
+    const q = QUESTIONS[state.current];
+    const remaining = [0,1,2,3].filter(i=> !state.eliminated.includes(i));
+    const difficulty = state.current / QUESTIONS.length;
+    const friendKnows = Math.random() > difficulty * 0.5;
+    const guessIdx = friendKnows ? q.correct : remaining[Math.floor(Math.random()*remaining.length)];
+    const confidence = friendKnows ? (80 + Math.floor(Math.random()*15)) : (35 + Math.floor(Math.random()*25));
+    const letter = String.fromCharCode(65 + guessIdx);
+    const quote = friendKnows
+      ? `"Pretty sure it's ${letter} \u2014 I'd say I'm about ${confidence}% confident."`
+      : `"Tough one. If I had to guess I'd go with ${letter}, but only about ${confidence}% sure."`;
+    els.helperBody.innerHTML = `<p class="friend-quote">${quote}</p>`;
+    openHelper('your friend says');
+  });
+
+  function startGame(){
+    resetState();
+    els.overlay.classList.remove('visible');
+    [els.ll5050, els.llAudience, els.llFriend].forEach(b=> b.disabled=false);
+    renderQuestion();
+  }
+
+  document.getElementById('start-btn').addEventListener('click', ()=>{
+    document.getElementById('start-overlay').classList.add('hidden');
+    startGame();
+  });
+
+  buildLadder();
+
+})();
+</script>
+</body>
+</html>
