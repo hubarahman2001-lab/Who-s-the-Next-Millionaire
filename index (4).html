@@ -1,0 +1,707 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Who's the Next Millionaire</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Source+Serif+4:ital,wght@0,500;0,600;1,500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg-deep:#020818;
+    --bg-mid:#050f2e;
+    --ring:#0d2c68;
+    --panel:#081739;
+    --panel-alt:#0b1f4c;
+    --line:#173568;
+    --gold:#f6c453;
+    --gold-deep:#c8922b;
+    --blue-glow:#2e6bff;
+    --text:#eef3ff;
+    --muted:#7f93c4;
+    --correct:#3ecf7e;
+    --wrong:#ef4b5a;
+    --radius:10px;
+  }
+  *{box-sizing:border-box;}
+  html,body{
+    margin:0; padding:0; height:100%; overflow:hidden;
+    background:var(--bg-deep);
+  }
+  body{
+    color:var(--text);
+    font-family:'Oswald', sans-serif;
+  }
+  #rings{
+    position:fixed; inset:0; z-index:0; pointer-events:none;
+    background:
+      radial-gradient(circle at 50% 46%, rgba(46,107,255,0.20) 0%, transparent 30%),
+      radial-gradient(circle at 50% 46%, transparent 29%, rgba(23,53,104,0.55) 30%, transparent 31%),
+      radial-gradient(circle at 50% 46%, transparent 44%, rgba(23,53,104,0.4) 45%, transparent 46%),
+      radial-gradient(circle at 50% 46%, transparent 63%, rgba(23,53,104,0.3) 64%, transparent 65%),
+      radial-gradient(ellipse at 50% 100%, rgba(46,107,255,0.12), transparent 60%),
+      var(--bg-deep);
+  }
+  #app{
+    position:relative; z-index:1;
+    height:100vh; width:100%;
+    max-width:1180px; margin:0 auto;
+    display:flex; flex-direction:column;
+    padding:clamp(8px,1.8vh,20px) clamp(10px,2vw,24px);
+  }
+
+  /* ---------- Header ---------- */
+  header{
+    display:flex; align-items:center; justify-content:space-between;
+    flex-wrap:wrap; gap:8px; flex-shrink:0;
+    margin-bottom:clamp(6px,1.2vh,14px);
+  }
+  .brand{ display:flex; align-items:center; gap:10px; }
+  .brand svg{ flex-shrink:0; }
+  .brand h1{
+    font-size:clamp(1.05rem,2.3vh,1.5rem); margin:0; font-weight:600;
+    letter-spacing:0.02em; text-transform:uppercase;
+  }
+  .brand h1 span{ color:var(--gold); }
+  .header-right{ display:flex; align-items:center; gap:10px; }
+  .winnings-pill{
+    background:linear-gradient(135deg, var(--panel-alt), var(--panel));
+    border:1px solid var(--gold-deep);
+    border-radius:20px; padding:6px 16px;
+    font-size:clamp(0.7rem,1.4vh,0.85rem); color:var(--muted);
+    display:flex; align-items:center; gap:8px;
+  }
+  .winnings-pill strong{ color:var(--gold); font-size:1.05em; }
+  #restart-top{
+    background:transparent; border:1px solid var(--line); color:var(--muted);
+    padding:6px 12px; border-radius:20px; font-family:inherit; font-size:0.75rem;
+    cursor:pointer; text-transform:uppercase; letter-spacing:0.03em;
+  }
+  #restart-top:hover{ border-color:var(--gold); color:var(--gold); }
+
+  /* ---------- Stage layout ---------- */
+  .stage{
+    display:grid; grid-template-columns: 1fr 200px; gap:clamp(10px,1.6vw,20px);
+    flex:1; min-height:0;
+  }
+  @media (max-width: 720px){
+    .stage{ grid-template-columns: 1fr; grid-template-rows: 1fr auto; }
+  }
+
+  /* ---------- Question panel ---------- */
+  .panel{
+    background:linear-gradient(180deg, var(--panel), var(--bg-mid));
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    padding:clamp(12px,2vh,22px);
+    display:flex; flex-direction:column; min-height:0;
+  }
+  .lifelines{
+    display:flex; gap:8px; margin-bottom:clamp(8px,1.4vh,16px); flex-wrap:wrap; flex-shrink:0;
+  }
+  .lifeline-btn{
+    display:flex; align-items:center; gap:6px;
+    background:var(--panel-alt); border:1px solid var(--line);
+    color:var(--text); padding:6px 12px; border-radius:20px;
+    font-family:inherit; font-size:clamp(0.65rem,1.3vh,0.78rem); cursor:pointer;
+    text-transform:uppercase; letter-spacing:0.02em;
+    transition:transform .12s, border-color .15s;
+  }
+  .lifeline-btn:hover:not(:disabled){ border-color:var(--gold); transform:translateY(-1px); }
+  .lifeline-btn:disabled{ opacity:0.3; cursor:not-allowed; }
+  .lifeline-btn .dot{ width:7px; height:7px; border-radius:50%; background:var(--blue-glow); }
+
+  .top-row{
+    display:flex; align-items:center; justify-content:space-between;
+    flex-wrap:wrap; gap:8px; margin-bottom:6px; flex-shrink:0;
+  }
+  .prize-current{ color:var(--muted); font-size:clamp(0.72rem,1.4vh,0.88rem); margin:0; }
+  .prize-current strong{ color:var(--gold); }
+
+  .timer-wrap{ display:flex; align-items:center; gap:8px; flex-shrink:0; }
+  .timer-num{
+    font-weight:700; font-size:clamp(0.85rem,1.8vh,1.05rem); color:var(--gold);
+    min-width:2ch; text-align:right; font-variant-numeric:tabular-nums;
+  }
+  .timer-track{
+    width:clamp(70px,12vw,120px); height:7px; border-radius:4px;
+    background:var(--bg-mid); overflow:hidden; border:1px solid var(--line);
+  }
+  .timer-fill{
+    height:100%; width:100%; background:var(--blue-glow);
+    transition:width 1s linear, background-color .3s;
+  }
+  .timer-fill.low{ background:var(--wrong); }
+
+  #question-text{
+    font-family:'Source Serif 4', serif; font-weight:600;
+    font-size:clamp(1.05rem,2.6vh,1.5rem); line-height:1.35;
+    margin:clamp(4px,1vh,12px) 0 clamp(10px,1.8vh,20px);
+    text-align:center; flex-shrink:0;
+  }
+
+  .options-grid{
+    display:grid; grid-template-columns:1fr 1fr; gap:clamp(8px,1.4vh,14px);
+    flex:1; min-height:0; align-content:center;
+  }
+  @media (max-width:520px){ .options-grid{ grid-template-columns:1fr; } }
+  .option{
+    display:flex; align-items:center; gap:10px; text-align:left;
+    background:linear-gradient(135deg, var(--panel-alt), #0a1a44);
+    border:1px solid var(--blue-glow);
+    color:var(--text); padding:clamp(10px,1.8vh,16px) clamp(16px,2.4vw,26px);
+    font-family:'Source Serif 4', serif; font-size:clamp(0.85rem,1.8vh,1.02rem);
+    cursor:pointer; transition:border-color .15s, background .15s, transform .1s;
+    clip-path: polygon(2.5% 0%, 97.5% 0%, 100% 50%, 97.5% 100%, 2.5% 100%, 0% 50%);
+  }
+  .option:hover:not(:disabled){ border-color:var(--gold); transform:translateY(-1px); }
+  .option .letter{
+    font-family:'Oswald', sans-serif; font-weight:600;
+    color:var(--gold); flex-shrink:0; font-size:1.05em;
+  }
+  .option.selected{ border-color:var(--gold); background:linear-gradient(135deg,#1a2a5c,#0a1a44); }
+  .option.correct{ border-color:var(--correct); background:rgba(62,207,126,0.18); }
+  .option.correct .letter{ color:var(--correct); }
+  .option.wrong{ border-color:var(--wrong); background:rgba(239,75,90,0.18); }
+  .option.wrong .letter{ color:var(--wrong); }
+  .option.eliminated{ opacity:0.2; pointer-events:none; }
+  .option:disabled{ cursor:default; }
+
+  .controls{
+    display:flex; justify-content:space-between; align-items:center;
+    margin-top:clamp(8px,1.4vh,16px); flex-wrap:wrap; gap:8px; flex-shrink:0;
+  }
+  #walk-away{
+    background:transparent; border:1px solid var(--line); color:var(--muted);
+    padding:8px 14px; border-radius:20px; font-family:inherit; font-size:clamp(0.68rem,1.3vh,0.8rem);
+    cursor:pointer; text-transform:uppercase; letter-spacing:0.02em;
+  }
+  #walk-away:hover:not(:disabled){ border-color:var(--wrong); color:var(--wrong); }
+  #walk-away:disabled{ opacity:0.3; cursor:not-allowed; }
+
+  #confirm-btn{
+    background:linear-gradient(135deg, var(--gold), var(--gold-deep)); border:none; color:#1a1206;
+    padding:9px 20px; border-radius:20px; font-family:inherit; font-weight:600;
+    font-size:clamp(0.7rem,1.3vh,0.82rem); cursor:pointer; opacity:0; pointer-events:none;
+    text-transform:uppercase; letter-spacing:0.02em;
+    transition:opacity .15s;
+  }
+  #confirm-btn.visible{ opacity:1; pointer-events:auto; }
+
+  /* ---------- audience / friend overlays ---------- */
+  .helper-box{
+    margin-top:8px; padding:10px 14px; border-radius:var(--radius);
+    background:var(--panel-alt); border:1px solid var(--line);
+    font-size:clamp(0.68rem,1.3vh,0.8rem); display:none; flex-shrink:0;
+  }
+  .helper-box.visible{ display:block; }
+  .helper-box h4{ margin:0 0 8px; font-size:0.75em; color:var(--muted); font-weight:500; text-transform:uppercase; letter-spacing:0.03em; }
+  .bar-row{ display:flex; align-items:center; gap:10px; margin-bottom:7px; }
+  .bar-row .bar-label{
+    width:20px; height:20px; border-radius:50%; flex-shrink:0;
+    background:var(--panel); border:1px solid var(--line);
+    color:var(--muted); font-size:0.72em; font-weight:600;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .bar-row .bar-track{
+    flex:1; height:16px; background:var(--bg-mid); border-radius:8px;
+    overflow:hidden; border:1px solid var(--line);
+  }
+  .bar-row .bar-fill{
+    height:100%; width:0%; border-radius:8px;
+    background:linear-gradient(90deg, var(--blue-glow), #5a8dff);
+    box-shadow:0 0 8px rgba(46,107,255,0.5);
+  }
+  .bar-row .bar-pct{
+    width:38px; text-align:right; color:var(--muted); font-size:0.85em;
+    font-variant-numeric:tabular-nums; font-weight:500;
+  }
+  .bar-row.leading .bar-label{ background:var(--gold); border-color:var(--gold); color:#1a1206; }
+  .bar-row.leading .bar-track{ border-color:var(--gold-deep); }
+  .bar-row.leading .bar-fill{
+    background:linear-gradient(90deg, var(--gold-deep), var(--gold));
+    box-shadow:0 0 10px rgba(246,196,83,0.6);
+  }
+  .bar-row.leading .bar-pct{ color:var(--gold); font-weight:700; }
+  .friend-quote{ font-family:'Source Serif 4', serif; font-style:italic; color:var(--text); line-height:1.4; margin:0; }
+
+  /* ---------- ladder ---------- */
+  .ladder{
+    background:linear-gradient(180deg, var(--panel), var(--bg-mid));
+    border:1px solid var(--line); border-radius:var(--radius);
+    padding:clamp(8px,1.4vh,14px) clamp(6px,1vw,10px);
+    display:flex; flex-direction:column-reverse; justify-content:center;
+    gap:clamp(2px,0.6vh,6px); min-height:0; overflow:hidden;
+  }
+  .rung{
+    display:flex; align-items:center; justify-content:space-between;
+    padding:clamp(4px,0.9vh,8px) 10px; border-radius:6px;
+    font-size:clamp(0.68rem,1.3vh,0.85rem); color:var(--muted);
+    font-weight:500; letter-spacing:0.01em;
+  }
+  .rung .num{ opacity:0.55; margin-right:6px; font-size:0.8em; }
+  .rung.safe{ color:var(--gold); }
+  .rung.current{
+    background:linear-gradient(90deg, var(--blue-glow), transparent);
+    color:#fff; font-weight:700;
+    border:1px solid var(--gold);
+  }
+  .rung.passed{ color:var(--correct); }
+
+  /* ---------- overlay end-screens ---------- */
+  #overlay{
+    position:fixed; inset:0; background:rgba(1,4,12,0.92);
+    display:none; align-items:center; justify-content:center; z-index:10;
+    padding:20px;
+  }
+  #overlay.visible{ display:flex; }
+  .end-card{
+    background:linear-gradient(180deg, var(--panel), var(--bg-mid));
+    border:1px solid var(--gold-deep); border-radius:14px;
+    padding:clamp(24px,4vh,40px) clamp(20px,4vw,36px); max-width:440px; text-align:center;
+  }
+  .end-card .icon{ font-size:2.2rem; margin-bottom:10px; }
+  .end-card h2{ margin:0 0 8px; font-size:1.5rem; color:var(--gold); text-transform:uppercase; letter-spacing:0.02em; }
+  .end-card p{ color:var(--text); margin:0 0 22px; line-height:1.5; font-size:0.92rem; font-family:'Source Serif 4', serif; }
+  .end-card .amount{ color:var(--gold); font-weight:700; font-family:'Oswald', sans-serif; }
+  .end-card button{
+    background:linear-gradient(135deg, var(--gold), var(--gold-deep)); border:none; color:#1a1206; font-family:inherit;
+    font-weight:600; padding:10px 26px; border-radius:20px; cursor:pointer; font-size:0.88rem;
+    text-transform:uppercase; letter-spacing:0.02em;
+  }
+</style>
+</head>
+<body>
+
+<div id="rings"></div>
+
+<div id="app">
+  <header>
+    <div class="brand">
+      <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+        <circle cx="14" cy="14" r="12" stroke="#2e6bff" stroke-width="1.5" opacity="0.5"/>
+        <circle cx="14" cy="14" r="7" stroke="#f6c453" stroke-width="1.5"/>
+        <circle cx="14" cy="14" r="2.5" fill="#f6c453"/>
+      </svg>
+      <h1>Who's the Next <span>Millionaire</span></h1>
+    </div>
+    <div class="header-right">
+      <div class="winnings-pill">guaranteed: <strong id="guaranteed-amt">$0</strong></div>
+      <button id="restart-top">restart</button>
+    </div>
+  </header>
+
+  <div class="stage">
+    <section class="panel">
+      <div class="lifelines">
+        <button class="lifeline-btn" id="ll-5050"><span class="dot"></span>50:50</button>
+        <button class="lifeline-btn" id="ll-audience"><span class="dot"></span>ask the audience</button>
+        <button class="lifeline-btn" id="ll-friend"><span class="dot"></span>phone a friend</button>
+      </div>
+
+      <div class="top-row">
+        <p class="prize-current">question <strong id="q-num">1</strong> of 5 &nbsp;&middot;&nbsp; playing for <strong id="q-prize">$100</strong></p>
+        <div class="timer-wrap">
+          <div class="timer-track"><div class="timer-fill" id="timer-fill"></div></div>
+          <span class="timer-num" id="timer-num">30</span>
+        </div>
+      </div>
+
+      <h2 id="question-text">Loading question…</h2>
+
+      <div class="options-grid" id="options-grid"></div>
+
+      <div class="helper-box" id="audience-box">
+        <h4>the audience says</h4>
+        <div id="audience-bars"></div>
+      </div>
+      <div class="helper-box" id="friend-box">
+        <h4>your friend says</h4>
+        <p class="friend-quote" id="friend-text"></p>
+      </div>
+
+      <div class="controls">
+        <button id="walk-away">walk away with winnings</button>
+        <button id="confirm-btn">lock in final answer</button>
+      </div>
+    </section>
+
+    <aside class="ladder" id="ladder"></aside>
+  </div>
+</div>
+
+<div id="overlay">
+  <div class="end-card">
+    <div class="icon" id="end-icon">🏆</div>
+    <h2 id="end-title">You did it!</h2>
+    <p id="end-desc">You've walked away with <span class="amount" id="end-amount">$0</span>.</p>
+    <button id="play-again">play again</button>
+  </div>
+</div>
+
+<script>
+(function(){
+
+  /* =====================================================
+     QUESTION BANK — edit this array to customize the quiz.
+     Each question needs: text, options (4), correct (index 0-3).
+     Keep them in increasing order of difficulty to match
+     the prize ladder below.
+  ===================================================== */
+  const QUESTIONS = [
+    {
+      text:"Which of the following is considered a disrespectful behavior that should be avoided during a team meeting?",
+      options:[
+        "Actively inviting quieter team members to speak",
+        "Rolling your eyes, pointing fingers, and checking your phone while others talk",
+        "Letting a colleague finish their point before responding",
+        "Staying calm during a disagreement"
+      ],
+      correct:1
+    },
+    {
+      text:"According to the value of Respect, what should you do if you strongly disagree with a colleague's opinion during a discussion?",
+      options:[
+        "Interrupt them immediately to correct their line of thinking",
+        "Formulate your counterargument while they are still speaking",
+        "Let them finish making their point before you respond",
+        "Check your laptop until they are done speaking"
+      ],
+      correct:2
+    },
+    {
+      text:"If you are on a recruitment panel and realize you know one of the candidates personally, what does the value of Integrity require you to do?",
+      options:[
+        "Keep it a secret to save the team hours of interviews",
+        "Declare the connection and step back so the process stays fair",
+        "Quietly put them on the shortlist because they are a \u201cgreat guy\u201d",
+        "Ask the candidate to pretend they don't know you"
+      ],
+      correct:1
+    },
+    {
+      text:"What does it mean to be a \u201ctrusted partner\u201d in HR when you witness an unethical shortcut or bias creeping into a process?",
+      options:[
+        "Pretending you didn't see it because addressing it would be awkward",
+        "Challenging the practice and speaking up, even when it is uncomfortable",
+        "Adjusting your ethical principles to be \u201cflexible\u201d for the situation",
+        "Prioritizing speed and efficiency over fairness"
+      ],
+      correct:1
+    },
+    {
+      text:"Which of the following best defines the core principle of \u201cIntegrity\u201d as outlined in our organizational values?",
+      options:[
+        "Doing whatever it takes to speed up hiring and promotions",
+        "Holding yourself to strong ethical principles, even when it is uncomfortable",
+        "Being flexible with rules to help friends and family get jobs",
+        "Staying silent during unethical situations to maintain team harmony"
+      ],
+      correct:1
+    }
+  ];
+
+  const PRIZES = [100, 1000, 10000, 100000, 1000000];
+  const SAFE_HAVENS = [3]; // 1-indexed question numbers that lock in a guaranteed amount
+  const TIMER_SECONDS = 30;
+
+  function fmt(n){ return '$' + n.toLocaleString('en-US'); }
+
+  let state = {};
+  let timerInterval = null;
+
+  function resetState(){
+    state = {
+      current: 0,
+      lifelines:{ fifty:false, audience:false, friend:false },
+      selected: null,
+      locked: false,
+      eliminated: [],
+      timeLeft: TIMER_SECONDS
+    };
+  }
+
+  const els = {
+    qNum: document.getElementById('q-num'),
+    qPrize: document.getElementById('q-prize'),
+    qText: document.getElementById('question-text'),
+    grid: document.getElementById('options-grid'),
+    ladder: document.getElementById('ladder'),
+    confirmBtn: document.getElementById('confirm-btn'),
+    walkAway: document.getElementById('walk-away'),
+    audienceBox: document.getElementById('audience-box'),
+    audienceBars: document.getElementById('audience-bars'),
+    friendBox: document.getElementById('friend-box'),
+    friendText: document.getElementById('friend-text'),
+    overlay: document.getElementById('overlay'),
+    endIcon: document.getElementById('end-icon'),
+    endTitle: document.getElementById('end-title'),
+    endDesc: document.getElementById('end-desc'),
+    endAmount: document.getElementById('end-amount'),
+    guaranteedAmt: document.getElementById('guaranteed-amt'),
+    ll5050: document.getElementById('ll-5050'),
+    llAudience: document.getElementById('ll-audience'),
+    llFriend: document.getElementById('ll-friend'),
+    timerFill: document.getElementById('timer-fill'),
+    timerNum: document.getElementById('timer-num'),
+  };
+
+  function buildLadder(){
+    els.ladder.innerHTML = '';
+    PRIZES.forEach((p, i)=>{
+      const n = i+1;
+      const div = document.createElement('div');
+      div.className = 'rung';
+      if (SAFE_HAVENS.includes(n)) div.classList.add('safe');
+      div.dataset.n = n;
+      div.innerHTML = `<span><span class="num">${n}</span>${fmt(p)}</span>`;
+      els.ladder.appendChild(div);
+    });
+  }
+
+  function updateLadder(){
+    document.querySelectorAll('.rung').forEach(r=>{
+      const n = parseInt(r.dataset.n,10);
+      r.classList.remove('current','passed');
+      if (n === state.current+1) r.classList.add('current');
+      else if (n <= state.current) r.classList.add('passed');
+    });
+  }
+
+  function updateGuaranteed(){
+    els.guaranteedAmt.textContent = fmt(guaranteedAmount(state.current));
+  }
+
+  function renderQuestion(){
+    state.selected = null;
+    state.locked = false;
+    state.eliminated = [];
+    els.confirmBtn.classList.remove('visible');
+    els.audienceBox.classList.remove('visible');
+    els.friendBox.classList.remove('visible');
+
+    const q = QUESTIONS[state.current];
+    els.qNum.textContent = state.current+1;
+    els.qPrize.textContent = fmt(PRIZES[state.current]);
+    els.qText.textContent = q.text;
+
+    els.grid.innerHTML = '';
+    q.options.forEach((opt, idx)=>{
+      const btn = document.createElement('button');
+      btn.className = 'option';
+      btn.innerHTML = `<span class="letter">${String.fromCharCode(65+idx)}:</span><span>${opt}</span>`;
+      btn.addEventListener('click', ()=> selectOption(idx));
+      els.grid.appendChild(btn);
+    });
+
+    els.walkAway.disabled = state.current === 0;
+    updateLadder();
+    updateGuaranteed();
+    startTimer();
+  }
+
+  function startTimer(){
+    clearInterval(timerInterval);
+    state.timeLeft = TIMER_SECONDS;
+    updateTimerDisplay();
+    timerInterval = setInterval(()=>{
+      state.timeLeft--;
+      updateTimerDisplay();
+      if (state.timeLeft <= 0){
+        clearInterval(timerInterval);
+        handleTimeUp();
+      }
+    }, 1000);
+  }
+
+  function updateTimerDisplay(){
+    const pct = Math.max(0, (state.timeLeft / TIMER_SECONDS) * 100);
+    els.timerFill.style.width = pct + '%';
+    els.timerFill.classList.toggle('low', state.timeLeft <= 10);
+    els.timerNum.textContent = state.timeLeft;
+  }
+
+  function handleTimeUp(){
+    if (state.locked) return;
+    state.locked = true;
+    els.confirmBtn.classList.remove('visible');
+    const q = QUESTIONS[state.current];
+    const opts = document.querySelectorAll('.option');
+    opts.forEach(o=> o.disabled = true);
+    opts[q.correct].classList.add('correct');
+    setTimeout(()=>{
+      const guaranteed = guaranteedAmount(state.current);
+      endGame('timeout', guaranteed);
+    }, 1200);
+  }
+
+  function selectOption(idx){
+    if (state.locked) return;
+    if (state.eliminated.includes(idx)) return;
+    state.selected = idx;
+    document.querySelectorAll('.option').forEach((el,i)=>{
+      el.classList.toggle('selected', i===idx);
+    });
+    els.confirmBtn.classList.add('visible');
+  }
+
+  els.confirmBtn.addEventListener('click', ()=>{
+    if (state.selected === null || state.locked) return;
+    lockAnswer();
+  });
+
+  function lockAnswer(){
+    state.locked = true;
+    clearInterval(timerInterval);
+    els.confirmBtn.classList.remove('visible');
+    const q = QUESTIONS[state.current];
+    const opts = document.querySelectorAll('.option');
+    opts.forEach(o=> o.disabled = true);
+
+    setTimeout(()=>{
+      opts[q.correct].classList.add('correct');
+      if (state.selected !== q.correct){
+        opts[state.selected].classList.add('wrong');
+      }
+      setTimeout(()=>{
+        if (state.selected === q.correct){
+          if (state.current === QUESTIONS.length - 1){
+            endGame('win', PRIZES[PRIZES.length-1]);
+          } else {
+            state.current++;
+            renderQuestion();
+          }
+        } else {
+          const guaranteed = guaranteedAmount(state.current);
+          endGame('lose', guaranteed);
+        }
+      }, 1300);
+    }, 700);
+  }
+
+  function guaranteedAmount(currentIdx){
+    // currentIdx is 0-based index of the current/just-failed question
+    let amount = 0;
+    for (const n of SAFE_HAVENS){
+      if (currentIdx >= n) amount = PRIZES[n-1];
+    }
+    return amount;
+  }
+
+  els.walkAway.addEventListener('click', ()=>{
+    if (state.locked || state.current === 0) return;
+    clearInterval(timerInterval);
+    const amount = PRIZES[state.current-1];
+    endGame('walk', amount);
+  });
+
+  function endGame(type, amount){
+    clearInterval(timerInterval);
+    els.overlay.classList.add('visible');
+    if (type === 'win'){
+      els.endIcon.textContent = '🏆';
+      els.endTitle.textContent = "You're the Next Millionaire!";
+      els.endDesc.innerHTML = `You answered every question correctly and won <span class="amount">${fmt(amount)}</span>.`;
+    } else if (type === 'walk'){
+      els.endIcon.textContent = '🤝';
+      els.endTitle.textContent = 'You walked away';
+      els.endDesc.innerHTML = `You banked <span class="amount">${fmt(amount)}</span> before risking it all.`;
+    } else if (type === 'timeout'){
+      els.endIcon.textContent = '⏱️';
+      els.endTitle.textContent = "Time's up";
+      els.endDesc.innerHTML = amount > 0
+        ? `You ran out of time \u2014 your safe haven means you still leave with <span class="amount">${fmt(amount)}</span>.`
+        : `You ran out of time and leave with <span class="amount">${fmt(0)}</span>. Give it another go.`;
+    } else {
+      els.endIcon.textContent = '💫';
+      els.endTitle.textContent = 'Game over';
+      els.endDesc.innerHTML = amount > 0
+        ? `That one got you \u2014 but your safe haven means you still leave with <span class="amount">${fmt(amount)}</span>.`
+        : `That one got you \u2014 you leave with <span class="amount">${fmt(0)}</span>. Give it another go.`;
+    }
+  }
+
+  document.getElementById('play-again').addEventListener('click', startGame);
+  document.getElementById('restart-top').addEventListener('click', ()=>{
+    if (confirm('Restart the game from question 1?')) startGame();
+  });
+
+  /* ---------- lifelines ---------- */
+  els.ll5050.addEventListener('click', ()=>{
+    if (state.lifelines.fifty || state.locked) return;
+    state.lifelines.fifty = true;
+    els.ll5050.disabled = true;
+    const q = QUESTIONS[state.current];
+    const wrongIdxs = [0,1,2,3].filter(i=> i!==q.correct);
+    wrongIdxs.sort(()=>Math.random()-0.5);
+    const toRemove = wrongIdxs.slice(0,2);
+    const opts = document.querySelectorAll('.option');
+    toRemove.forEach(i=>{
+      opts[i].classList.add('eliminated');
+      opts[i].disabled = true;
+      state.eliminated.push(i);
+    });
+  });
+
+  els.llAudience.addEventListener('click', ()=>{
+    if (state.lifelines.audience || state.locked) return;
+    state.lifelines.audience = true;
+    els.llAudience.disabled = true;
+    const q = QUESTIONS[state.current];
+    const remaining = [0,1,2,3].filter(i=> !state.eliminated.includes(i));
+    const difficulty = state.current / QUESTIONS.length;
+    const correctShare = Math.round(70 - difficulty*35 + Math.random()*10);
+    let pcts = {};
+    remaining.forEach(i=> pcts[i] = i===q.correct ? correctShare : 0);
+    let remainder = 100 - correctShare;
+    const others = remaining.filter(i=> i!==q.correct);
+    others.forEach((i, idx)=>{
+      const share = idx === others.length-1 ? remainder : Math.round(Math.random()*remainder/ (others.length-idx));
+      pcts[i] = share;
+      remainder -= share;
+    });
+    els.audienceBox.classList.add('visible');
+    els.audienceBars.innerHTML = '';
+    const leaderIdx = [0,1,2,3].reduce((best,i)=> (pcts[i]||0) > (pcts[best]||0) ? i : best, 0);
+    [0,1,2,3].forEach(i=>{
+      const pct = pcts[i] || 0;
+      const row = document.createElement('div');
+      row.className = 'bar-row' + (i === leaderIdx ? ' leading' : '');
+      row.innerHTML = `<span class="bar-label">${String.fromCharCode(65+i)}</span>
+        <span class="bar-track"><span class="bar-fill" style="width:${pct}%"></span></span>
+        <span class="bar-pct">${pct}%</span>`;
+      els.audienceBars.appendChild(row);
+    });
+  });
+
+  els.llFriend.addEventListener('click', ()=>{
+    if (state.lifelines.friend || state.locked) return;
+    state.lifelines.friend = true;
+    els.llFriend.disabled = true;
+    const q = QUESTIONS[state.current];
+    const remaining = [0,1,2,3].filter(i=> !state.eliminated.includes(i));
+    const difficulty = state.current / QUESTIONS.length;
+    const friendKnows = Math.random() > difficulty * 0.5;
+    const guessIdx = friendKnows ? q.correct : remaining[Math.floor(Math.random()*remaining.length)];
+    const confidence = friendKnows ? (80 + Math.floor(Math.random()*15)) : (35 + Math.floor(Math.random()*25));
+    const letter = String.fromCharCode(65 + guessIdx);
+    els.friendBox.classList.add('visible');
+    els.friendText.textContent = friendKnows
+      ? `"Pretty sure it's ${letter} \u2014 I'd say I'm about ${confidence}% confident."`
+      : `"Tough one. If I had to guess I'd go with ${letter}, but only about ${confidence}% sure."`;
+  });
+
+  function startGame(){
+    resetState();
+    els.overlay.classList.remove('visible');
+    [els.ll5050, els.llAudience, els.llFriend].forEach(b=> b.disabled=false);
+    renderQuestion();
+  }
+
+  buildLadder();
+  startGame();
+
+})();
+</script>
+</body>
+</html>
